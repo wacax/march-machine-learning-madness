@@ -27,21 +27,6 @@ thePredictionTracker <- 'http://www.thepredictiontracker.com/ncaabbtoday.csv'
 download.file(thePredictionTracker, paste0(dataDirectory, 'predictionTracker.csv'), method = 'auto')
 predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), header = TRUE, stringsAsFactors = FALSE)
 
-#EXTRA DATA - Sagarin Predictive Ratings
-sagarinPredictiveRankings <- 'https://www.kaggle.com/blobs/download/forum-message-attachment-files/990/sagp_weekly_ratings.csv'
-download.file(sagarinPredictiveRankings, paste0(dataDirectory, 'sagarinRankings.csv'), method = 'curl')
-sagarinRankings <- read.csv(paste0(dataDirectory, 'sagarinRankings.csv'), header = TRUE, stringsAsFactors = FALSE)
-
-#EXTRA DATA - Ordinal Ranks from Kenneth Massey core 33
-ordinalRankingsKMcore33 <- 'http://www.kaggle.com/blobs/download/forum-message-attachment-files/999/ordinal_ranks_core_33.csv'
-download.file(ordinalRankingsKMcore33, paste0(dataDirectory, 'core33.csv'), method = 'auto')
-sagarinRankingsCore33 <- read.csv(paste0(dataDirectory, 'core33.csv'), header = TRUE, stringsAsFactors = FALSE)
-
-#EXTRA DATA - Ordinal Ranks from Kenneth Massey NON-core
-ordinalRankingsKMNonCore <- 'http://www.kaggle.com/blobs/download/forum-message-attachment-files/1000/ordinal_ranks_non_core.csv'
-download.file(ordinalRankingsKMNonCore, paste0(dataDirectory, 'nonCore.csv'), method = 'auto')
-sagarinRankingsNonCore <- read.csv(paste0(dataDirectory, 'nonCore.csv'), header = TRUE, stringsAsFactors = FALSE)
-
 
 #Vizualizations
 
