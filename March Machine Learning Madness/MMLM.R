@@ -5,8 +5,16 @@
 #########################
 #Init
 rm(list=ls(all=TRUE))
+
+#Load/install libraries
+install.packages("foreign")
+install.packages("gbm")
+install.packages("robustbase")
+install.packages("cvTools")
 require("foreign")
 require("gbm")
+require("robustbase")
+require("cvTools")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -34,10 +42,14 @@ predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), heade
 #Data munching
 seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
+seasonResults['wloc'] <- as.factor(seasonResults$wloc)
+seasonResults['numot'] <- as.factor(seasonResults$numot)
 
 #######################################################
 #Visualizations
+covarianceMatrix <- cov2cor(seasonResults['season', 'wscore', 'lscore', 'wloc', 'numot'])
 
+#histograms
 hist(as.numeric(seasonResults$season))
 hist(seasonResults$wscore, xlab = 'Score', main = 'Winning scores')
 hist(seasonResults$lscore, xlab = 'Score', main = 'Losing scores')
@@ -46,7 +58,7 @@ hist(seasonResults$lscore[seasonResults$wloc == 'H'], xlab = 'Score', main = 'Lo
 hist(seasonResults$wscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Winning scores, away')
 hist(seasonResults$lscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Losing scores, away')
 hist(seasonResults$wscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
-hist(seasonResults$lscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
+hist(seasonResults$lscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Losing scores, neutral')
 
 importFromStata <- function{
   dataTest <- (paste0(dataDirectory, missing.type = TRUE))
@@ -66,11 +78,15 @@ assignToEnvironment(seasons$season, seasons, seasons.env)
 assignToEnvironment(teams$id, teams, teams.env)
 assignToEnvironment(tourneySeeds$season, tourneySeeds, seeds.env)
 assignToEnvironment(tourneySlots$season, tourneySlots, slots.env)
+#######################################################
+#5 fold X-validation
+
 
 ########################################################
 #Training
 #get fun also works when extracts data from non-environments i.e dataframes
-
+dummyModel <- gbm(wscore ~ season + wloc + daynum,
+                    data = seasonResults)
 
 ########################################################
 #Evaluation
