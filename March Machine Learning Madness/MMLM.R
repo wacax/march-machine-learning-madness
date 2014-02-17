@@ -5,8 +5,8 @@
 #########################
 #Init
 rm(list=ls(all=TRUE))
-library("foreign", lib.loc="/usr/lib/R/library")
-library("gbm", lib.loc="/home/wacax/R/x86_64-pc-linux-gnu-library/3.0")
+require("foreign")
+require("gbm")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -39,7 +39,14 @@ seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 #Visualizations
 
 hist(as.numeric(seasonResults$season))
-hist(as.numeric(seasonResults$sdaynum), breaks = 20)
+hist(seasonResults$wscore, xlab = 'Score', main = 'Winning scores')
+hist(seasonResults$lscore, xlab = 'Score', main = 'Losing scores')
+hist(seasonResults$wscore[seasonResults$wloc == 'H'], xlab = 'Score', main = 'Winning scores, home')
+hist(seasonResults$lscore[seasonResults$wloc == 'H'], xlab = 'Score', main = 'Losing scores, home')
+hist(seasonResults$wscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Winning scores, away')
+hist(seasonResults$lscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Losing scores, away')
+hist(seasonResults$wscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
+hist(seasonResults$lscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
 
 importFromStata <- function{
   dataTest <- (paste0(dataDirectory, missing.type = TRUE))
@@ -62,6 +69,7 @@ assignToEnvironment(tourneySlots$season, tourneySlots, slots.env)
 
 ########################################################
 #Training
+#get fun also works when extracts data from non-environments i.e dataframes
 
 
 ########################################################
