@@ -10,9 +10,11 @@ rm(list=ls(all=TRUE))
 install.packages("foreign")
 install.packages("gbm")
 install.packages("cvTools")
+install.packages("robustbase")
 require("foreign")
 require("gbm")
 require("cvTools")
+require("robustbase")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -52,7 +54,16 @@ tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 
 #######################################################
 #Visualizations
-covarianceMatrix <- cov2cor(seasonResults['season', 'wscore', 'lscore', 'wloc', 'numot'])
+#Alchemy classes creation
+identityMatrix <- diag(max(as.numeric(seasonResults[,1])))
+seasonsDense <- t(sapply(as.numeric(seasonResults[,1]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
+wScoreDense <- seasonResults['wscore']
+lScoreDense <- seasonResults['lscore']
+identityMatrix <- diag(max(as.numeric(seasonResults[,7])))
+wLocDense <- t(sapply(as.numeric(seasonResults[,7]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
+
+covarianceMatrix <- cor(cbind(seasonResults['wscore'], seasonResults['lscore'],  as.matrix(wLocDense)))
+plotcor(covarianceMatrix)
 
 #histograms
 hist(as.numeric(seasonResults$season))
@@ -84,21 +95,22 @@ seeds.env <- new.env()
 slots.env <- new.env()
 
 assignToEnvironment(seasons$season, seasons[, -1], seasons.env)
-assignToEnvironment(teams$id, teams[, -1], teams.env)
+assignToEnvironment(teams$id, teams[, -1], teams.env) #fix this
 assignToEnvironment(tourneySeeds$season, tourneySeeds[, -1], seeds.env)
 assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
 
 ########################################################
 #Training
 #get fun also works when extracts data from non-environments i.e dataframes
-
 # set up function call
 dummyModel <- gbm(wscore ~ season + wloc,
                     data = seasonResults)
 
 #perform 5 fold X-validation using cvTools
-cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
-      K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
+dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
+                    K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
+
+predicted <- predict(dummyModel, *datahere*)
 
 ########################################################
 #Evaluation
