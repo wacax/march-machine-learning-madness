@@ -44,6 +44,10 @@ seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 seasonResults['wloc'] <- as.factor(seasonResults$wloc)
 seasonResults['numot'] <- as.factor(seasonResults$numot)
+tourneyResults['season'] <- as.factor(tourneyResults$season)
+tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
+tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
+tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 
 #######################################################
 #Visualizations
@@ -60,8 +64,9 @@ hist(seasonResults$lscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Lo
 hist(seasonResults$wscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
 hist(seasonResults$lscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Losing scores, neutral')
 
-importFromStata <- function{
-  dataTest <- (paste0(dataDirectory, missing.type = TRUE))
+#read .dta file (utility function). It must be in binary format
+importFromStata <- function(fileName){
+  dataTest <- read.dta(paste0(dataDirectory, missing.type = TRUE))
 }
 
 #######################################################
@@ -74,19 +79,22 @@ teams.env <- new.env()
 seeds.env <- new.env()
 slots.env <- new.env()
 
-assignToEnvironment(seasons$season, seasons, seasons.env)
-assignToEnvironment(teams$id, teams, teams.env)
-assignToEnvironment(tourneySeeds$season, tourneySeeds, seeds.env)
-assignToEnvironment(tourneySlots$season, tourneySlots, slots.env)
-#######################################################
-#5 fold X-validation
-
+assignToEnvironment(seasons$season, seasons[, -1], seasons.env)
+assignToEnvironment(teams$id, teams[, -1], teams.env)
+assignToEnvironment(tourneySeeds$season, tourneySeeds[, -1], seeds.env)
+assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
 
 ########################################################
 #Training
 #get fun also works when extracts data from non-environments i.e dataframes
-dummyModel <- gbm(wscore ~ season + wloc + daynum,
+
+# set up function call
+dummyModel <- gbm(wscore ~ season + wloc,
                     data = seasonResults)
+
+#perform 5 fold X-validation using cvTools
+cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
+      K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
 
 ########################################################
 #Evaluation
