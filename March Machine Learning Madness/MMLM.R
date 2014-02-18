@@ -9,11 +9,9 @@ rm(list=ls(all=TRUE))
 #Load/install libraries
 install.packages("foreign")
 install.packages("gbm")
-install.packages("robustbase")
 install.packages("cvTools")
 require("foreign")
 require("gbm")
-require("robustbase")
 require("cvTools")
 
 #Set Working Directory
@@ -32,6 +30,8 @@ tourneySlots <- read.csv(paste0(dataDirectory, 'tourney_slots.csv'), header = TR
 teams <- read.csv(paste0(dataDirectory, 'teams.csv'), header = TRUE, stringsAsFactors = FALSE)
 tourneySeeds <- read.csv(paste0(dataDirectory, 'tourney_seeds.csv'), header = TRUE, stringsAsFactors = FALSE)
 
+predictionGames <- read.csv(paste0(dataDirectory, 'sample_submission.csv'), header = TRUE, stringsAsFactors = FALSE)
+
 #load extra Data
 #EXTRA DATA - Pointspreads
 thePredictionTracker <- 'http://www.thepredictiontracker.com/ncaabbtoday.csv'
@@ -44,6 +44,7 @@ seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 seasonResults['wloc'] <- as.factor(seasonResults$wloc)
 seasonResults['numot'] <- as.factor(seasonResults$numot)
+
 tourneyResults['season'] <- as.factor(tourneyResults$season)
 tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
 tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
@@ -63,6 +64,9 @@ hist(seasonResults$wscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Wi
 hist(seasonResults$lscore[seasonResults$wloc == 'A'], xlab = 'Score', main = 'Losing scores, away')
 hist(seasonResults$wscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Winning scores, neutral')
 hist(seasonResults$lscore[seasonResults$wloc == 'N'], xlab = 'Score', main = 'Losing scores, neutral')
+
+hist(tourneyResults$wscore, xlab = 'Score', main = 'Winning scores')
+hist(tourneyResults$lscore, xlab = 'Score', main = 'Losing scores')
 
 #read .dta file (utility function). It must be in binary format
 importFromStata <- function(fileName){
