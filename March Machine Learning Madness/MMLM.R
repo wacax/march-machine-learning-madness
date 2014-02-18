@@ -63,7 +63,7 @@ identityMatrix <- diag(max(as.numeric(seasonResults[,7])))
 wLocDense <- t(sapply(as.numeric(seasonResults[,7]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
 
 covarianceMatrix <- cor(cbind(seasonResults['wscore'], seasonResults['lscore'],  as.matrix(wLocDense)))
-plotcor(covarianceMatrix)
+image(covarianceMatrix)
 
 #histograms
 hist(as.numeric(seasonResults$season))
