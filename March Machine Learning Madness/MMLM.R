@@ -31,8 +31,12 @@ tourneyResults <- read.csv(paste0(dataDirectory, 'tourney_results.csv'), header 
 tourneySlots <- read.csv(paste0(dataDirectory, 'tourney_slots.csv'), header = TRUE, stringsAsFactors = FALSE)
 teams <- read.csv(paste0(dataDirectory, 'teams.csv'), header = TRUE, stringsAsFactors = FALSE)
 tourneySeeds <- read.csv(paste0(dataDirectory, 'tourney_seeds.csv'), header = TRUE, stringsAsFactors = FALSE)
+SportsReferenceData <- read.csv(paste0(dataDirectory, 'SportsReferenceData.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 predictionGames <- read.csv(paste0(dataDirectory, 'sample_submission.csv'), header = TRUE, stringsAsFactors = FALSE)
+
+#Glosary
+SportsReferenceDataGlossary <- read.csv(paste0(dataDirectory, 'SportsReferenceDataGlossary.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 #load extra Data
 #EXTRA DATA - Pointspreads
@@ -54,16 +58,27 @@ tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 
 #######################################################
 #Visualizations
-#Alchemy classes creation
+#Regular Season Results Graphs
 identityMatrix <- diag(max(as.numeric(seasonResults[,1])))
 seasonsDense <- t(sapply(as.numeric(seasonResults[,1]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
-wScoreDense <- seasonResults['wscore']
-lScoreDense <- seasonResults['lscore']
 identityMatrix <- diag(max(as.numeric(seasonResults[,7])))
 wLocDense <- t(sapply(as.numeric(seasonResults[,7]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
 
 covarianceMatrix <- cor(cbind(seasonResults['wscore'], seasonResults['lscore'],  as.matrix(wLocDense)))
-image(covarianceMatrix)
+image(covarianceMatrix, xlab = 'WinScore,         LoseScore,          Home,          Away,          Neutral')
+
+#Regular Season Results Graphs + Tournament Results Graphs
+identityMatrix <- diag(max(as.numeric(tourneyResults[,1])))
+seasonsDenseT <- t(sapply(as.numeric(tourneyResults[,1]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
+identityMatrix <- diag(max(as.numeric(tourneyResults[,8])))
+wLocDenseT <- t(sapply(as.numeric(tourneyResults[,8]), anonFun <- function(x, identityMatrix){identityMatrix[x, ]}, identityMatrix))
+
+neutralMatrix <- matrix(nrow = nrow(tourneyResults), ncol = 3)
+neutralMatrix[,1:2] <- 0
+neutralMatrix[,3] <- 1
+
+covarianceMatrix <- cor(cbind(c(seasonResults['wscore'], tourneyResults['wscore']), c(seasonResults['wscore'], tourneyResults['lscore']),  rbind(as.matrix(wLocDense), neutralMatrix)))
+image(covarianceMatrix, xlab = 'WinScore,         LoseScore,          Home,          Away,          Neutral')
 
 #histograms
 hist(as.numeric(seasonResults$season))
@@ -110,7 +125,7 @@ dummyModel <- gbm(wscore ~ season + wloc,
 dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
                     K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
 
-predicted <- predict(dummyModel, *datahere*)
+predicted <- predict(dummyModel, *dataFromVetorBuilder*)
 
 ########################################################
 #Evaluation
