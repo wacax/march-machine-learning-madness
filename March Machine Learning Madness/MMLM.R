@@ -46,7 +46,7 @@ predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), heade
 
 ######################################################
 #Data munching
-#historic data of teams
+#historic data of teams (Train)
 anonFun <- function(keyWin, keyLose, environment, vectorZeros, SportsReferenceData){
   if(sum(SportsReferenceData$id == keyWin) != 0 & sum(SportsReferenceData$id == keyLose) != 0){
     vectorWin <- get(as.character(keyWin), envir = environment)

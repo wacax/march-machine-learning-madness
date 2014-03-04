@@ -1,4 +1,4 @@
-predictionsVectorExtractor <- function(string, seasonResults, tourneyResults, tourneySeeds){
+predictionsVectorExtractor <- function(string, seasonResults, tourneyResults, tourneySeeds, historic, SportsReferenceData){
   
   arf <- strsplit(string, '_')  
   seasonVector <- sapply(arf, anonFun <- function(anonList){anonList[1]
@@ -22,5 +22,22 @@ predictionsVectorExtractor <- function(string, seasonResults, tourneyResults, to
   homeSeeds <- as.numeric(gsub('[A-Za-z]', '', homeSeeds))
   visitorSeeds <- as.numeric(gsub('[A-Za-z]', '', visitorSeeds))
   
+  
+  #historic data of teams (Test)
+  anonFun <- function(keyWin, keyLose, environment, vectorZeros, SportsReferenceData){
+    if(sum(SportsReferenceData$id == keyWin) != 0 & sum(SportsReferenceData$id == keyLose) != 0){
+      vectorWin <- get(as.character(keyWin), envir = environment)
+      vectorLose <- get(as.character(keyLose), envir = environment)
+      historicVector <- as.numeric(cbind(vectorWin, vectorLose))
+    }else{
+      historicVector <- c(vectorZeros, vectorZeros)
+    }
+  }
+  
+  vectorZeros <- rep(0, 15)
+  testHistoric <- matrix(rep(0, length(string) * 30), nrow=length(string), ncol=30) 
+  for(i in 1:length(string)){
+    testHistoric[i, ] <- anonFun(home[i], visitor[i], historic.env, vectorZeros, SportsReferenceData)
+  } 
   
 }
