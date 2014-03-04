@@ -8,7 +8,6 @@ predictionsVectorExtractor <- function(string, seasonResults, tourneyResults, to
   visitor <- sapply(arf, anonFun <- function(anonList){anonList[3]
   })
   
-  #home <- cbind(seasonVector, home)
   homeSeeds <- rep(0, length(home))
   visitorSeeds <- rep(0, length(home))
   

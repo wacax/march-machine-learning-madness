@@ -56,6 +56,14 @@ tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
 tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
 tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 
+winSeeds <- rep(0, nrow(seasonResults))
+
+for(i in 1:nrow(seasonResults)){
+  winSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == seasonResults$wteam[i] & tourneySeeds$season == seasonResults$season[i]]    
+}
+
+homeSeeds <- as.numeric(gsub('[A-Za-z]', '', homeSeeds))
+
 #######################################################
 #Visualizations
 #Regular Season Results Graphs
@@ -108,11 +116,14 @@ seasons.env <- new.env()
 teams.env <- new.env()
 seeds.env <- new.env()
 slots.env <- new.env()
+historic.env <- new.env()
 
 assignToEnvironment(seasons$season, seasons[, -1], seasons.env)
 assignToEnvironment(teams$id, teams[, -1], teams.env) #fix this
 assignToEnvironment(tourneySeeds$season, tourneySeeds[, -1], seeds.env)
 assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
+assignToEnvironment(SportsReferenceData$id, SportsReferenceData[, c(-1, -2, -3)], historic.env)
+
 
 ########################################################
 #Training
