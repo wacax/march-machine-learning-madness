@@ -1,6 +1,6 @@
 #March Machine Learning Madness
 #Pipeline devel
-#Ver 0.2
+#Ver 0.3
 
 #########################
 #Init
@@ -56,6 +56,52 @@ tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
 tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
 
+#More data munging
+#Data shuffling
+tourneyShuffleIndexes <- as.logical(sample(c(rep(1, floor(nrow(tourneyResults)/2)), rep(0, floor(nrow(tourneyResults)/2)), nrow(tourneyResults))))
+seasonShuffleIndexes <- as.logical(sample(c(rep(1, floor(nrow(seasonResults)/2)), rep(0, ceiling(nrow(seasonResults)/2)), nrow(seasonResults))))
+tourneyShuffleIndexes <- tourneyShuffleIndexes[1:length(tourneyShuffleIndexes) - 1]
+seasonShuffleIndexes <- seasonShuffleIndexes[1:length(seasonShuffleIndexes) - 1]
+
+#express "y" in terms of probability where "1" means win and "0" defeat
+yTourney <- as.numeric(tourneyShuffleIndexes)
+ySeason <- as.numeric(seasonShuffleIndexes)
+
+#Season Results Shuffle
+winTeams <- rep(0, length(seasonShuffleIndexes))
+winScores <- rep(0, length(seasonShuffleIndexes))
+LoseTeams <- rep(0, length(seasonShuffleIndexes))
+LoseScores <- rep(0, length(seasonShuffleIndexes))
+winTeams[seasonShuffleIndexes] <- seasonResults$wteam[seasonShuffleIndexes]
+winTeams[!seasonShuffleIndexes] <- seasonResults$lteam[!seasonShuffleIndexes]
+winScores[seasonShuffleIndexes] <- seasonResults$wscore[seasonShuffleIndexes]
+winScores[!seasonShuffleIndexes] <- seasonResults$lscore[!seasonShuffleIndexes]
+LoseTeams[!seasonShuffleIndexes] <- seasonResults$wteam[!seasonShuffleIndexes]
+LoseTeams[seasonShuffleIndexes] <- seasonResults$lteam[seasonShuffleIndexes]
+LoseScores[!seasonShuffleIndexes] <- seasonResults$wscore[!seasonShuffleIndexes]
+LoseScores[seasonShuffleIndexes] <- seasonResults$lscore[seasonShuffleIndexes]
+seasonResults$wteam <- winTeams
+seasonResults$wscore <- winScores
+seasonResults$lteam <- LoseTeams
+seasonResults$lscore <- LoseScores
+
+#Tourney Results Shuffle
+winTeams <- rep(0, length(tourneyShuffleIndexes))
+winScores <- rep(0, length(tourneyShuffleIndexes))
+LoseTeams <- rep(0, length(tourneyShuffleIndexes))
+LoseScores <- rep(0, length(tourneyShuffleIndexes))
+winTeams[tourneyShuffleIndexes] <- tourneyResults$wteam[tourneyShuffleIndexes]
+winTeams[!tourneyShuffleIndexes] <- tourneyResults$lteam[!tourneyShuffleIndexes]
+winScores[tourneyShuffleIndexes] <- tourneyResults$wscore[tourneyShuffleIndexes]
+winScores[!tourneyShuffleIndexes] <- tourneyResults$lscore[!tourneyShuffleIndexes]
+LoseTeams[!tourneyShuffleIndexes] <- tourneyResults$wteam[!tourneyShuffleIndexes]
+LoseTeams[tourneyShuffleIndexes] <- tourneyResults$lteam[tourneyShuffleIndexes]
+LoseScores[!tourneyShuffleIndexes] <- tourneyResults$wscore[!tourneyShuffleIndexes]
+LoseScores[tourneyShuffleIndexes] <- tourneyResults$lscore[tourneyShuffleIndexes]
+tourneyResults$wteam <- winTeams
+tourneyResults$wscore <- winScores
+tourneyResults$lteam <- LoseTeams
+tourneyResults$lscore <- LoseScores
 
 #######################################################
 #Environments
@@ -74,7 +120,6 @@ assignToEnvironment(as.character(tourneySeeds$season), tourneySeeds[, -1], seeds
 assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
 assignToEnvironment(as.character(SportsReferenceData$id), SportsReferenceData[, c(-1, -2, -3)], historic.env)
 
-#More data munging
 #historic data of teams (Train)
 anonFun <- function(keyWin, keyLose, environment, vectorZeros, SportsReferenceData){
   if(sum(SportsReferenceData$id == keyWin) != 0 & sum(SportsReferenceData$id == keyLose) != 0){
@@ -111,8 +156,8 @@ for(i in 1:nrow(tourneyResults)){
 loseSeeds <- as.numeric(gsub('[A-Za-z]', '', loseSeeds))
 
 tourneyResults <- cbind(tourneyResults, winSeeds, loseSeeds, tournamentHistoric)
-colnames <- c("Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC")
-colnames <- c(names(tourneyResults[1:10]), colnames, colnames)
+colnames <- c("Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC", "Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
+colnames <- c(names(tourneyResults[1:10]), colnames)
 #######################################################
 #Visualizations
 #Regular Season Results Graphs
