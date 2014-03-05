@@ -46,6 +46,35 @@ predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), heade
 
 ######################################################
 #Data munching
+seasonResults['season'] <- as.factor(seasonResults$season)
+seasonResults['daynum'] <- as.factor(seasonResults$daynum)
+seasonResults['wloc'] <- as.factor(seasonResults$wloc)
+seasonResults['numot'] <- as.factor(seasonResults$numot)
+
+tourneyResults['season'] <- as.factor(tourneyResults$season)
+tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
+tourneyResults['numot'] <- as.factor(tourneyResults$numot)
+tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
+
+
+#######################################################
+#Environments
+source(paste0(workingDirectory, 'assignToEnvironment.R'))
+
+#Assign names to new environments
+seasons.env <- new.env()
+teams.env <- new.env()
+seeds.env <- new.env()
+slots.env <- new.env()
+historic.env <- new.env()
+
+assignToEnvironment(seasons$season, seasons[, -1], seasons.env)
+assignToEnvironment(teams$id, teams[, -1], teams.env) #fix this
+assignToEnvironment(as.character(tourneySeeds$season), tourneySeeds[, -1], seeds.env)
+assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
+assignToEnvironment(as.character(SportsReferenceData$id), SportsReferenceData[, c(-1, -2, -3)], historic.env)
+
+#More data munging
 #historic data of teams (Train)
 anonFun <- function(keyWin, keyLose, environment, vectorZeros, SportsReferenceData){
   if(sum(SportsReferenceData$id == keyWin) != 0 & sum(SportsReferenceData$id == keyLose) != 0){
@@ -63,28 +92,27 @@ for(i in 1:nrow(seasonResults)){
   seasonHistoric[i, ] <- anonFun(seasonResults$wteam[i], seasonResults$lteam[i], historic.env, vectorZeros, SportsReferenceData)
 }
 
-seasonResults['season'] <- as.factor(seasonResults$season)
-seasonResults['daynum'] <- as.factor(seasonResults$daynum)
-seasonResults['wloc'] <- as.factor(seasonResults$wloc)
-seasonResults['numot'] <- as.factor(seasonResults$numot)
+vectorZeros <- rep(0, 15)
+tournamentHistoric <- matrix(rep(0, nrow(tourneyResults) * 30), nrow=nrow(tourneyResults), ncol=30) 
+for(i in 1:nrow(tourneyResults)){
+  tournamentHistoric[i, ] <- anonFun(tourneyResults$wteam[i], tourneyResults$lteam[i], historic.env, vectorZeros, SportsReferenceData)
+}
 
-tourneyResults['season'] <- as.factor(tourneyResults$season)
-tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
-tourneyResults['numot'] <- as.factor(tourneyResults$numot)
-tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
-
-winSeeds <- rep(0, nrow(seasonResults))
-for(i in 1:nrow(seasonResults)){
-  winSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == seasonResults$wteam[i] & tourneySeeds$season == seasonResults$season[i]]    
+winSeeds <- rep(0, nrow(tourneyResults))
+for(i in 1:nrow(tourneyResults)){
+  winSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == tourneyResults$wteam[i] & tourneySeeds$season == tourneyResults$season[i]]    
 }
 winSeeds <- as.numeric(gsub('[A-Za-z]', '', winSeeds))
 
-loseSeeds <- rep(0, nrow(seasonResults))
-for(i in 1:nrow(seasonResults)){
-  loseSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == seasonResults$wteam[i] & tourneySeeds$season == seasonResults$season[i]]    
+loseSeeds <- rep(0, nrow(tourneyResults))
+for(i in 1:nrow(tourneyResults)){
+  loseSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == tourneyResults$wteam[i] & tourneySeeds$season == tourneyResults$season[i]]    
 }
 loseSeeds <- as.numeric(gsub('[A-Za-z]', '', loseSeeds))
 
+tourneyResults <- cbind(tourneyResults, winSeeds, loseSeeds, tournamentHistoric)
+colnames <- c("Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC")
+colnames <- c(names(tourneyResults[1:10]), colnames, colnames)
 #######################################################
 #Visualizations
 #Regular Season Results Graphs
@@ -128,36 +156,20 @@ importFromStata <- function(fileName){
   dataTest <- read.dta(paste0(dataDirectory, missing.type = TRUE))
 }
 
-#######################################################
-#Environments
-source(paste0(workingDirectory, 'assignToEnvironment.R'))
-
-#Assign names to new environments
-seasons.env <- new.env()
-teams.env <- new.env()
-seeds.env <- new.env()
-slots.env <- new.env()
-historic.env <- new.env()
-
-assignToEnvironment(seasons$season, seasons[, -1], seasons.env)
-assignToEnvironment(teams$id, teams[, -1], teams.env) #fix this
-assignToEnvironment(as.character(tourneySeeds$season), tourneySeeds[, -1], seeds.env)
-assignToEnvironment(tourneySlots$season, tourneySlots[, -1], slots.env)
-assignToEnvironment(as.character(SportsReferenceData$id), SportsReferenceData[, c(-1, -2, -3)], historic.env)
-
-
 ########################################################
 #Training
 #get fun also works when extracts data from non-environments i.e dataframes
 # set up function call
-Firstmodel <- gbm(wscore ~ season + wloc,
-                    data = seasonResults)
+source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
+
+FirstmodelWin <- glmnet(x = tourneyResults[,c(-2, -3, -4, -5, -6, -7, -8)], y = tourneyResults$wscore)
+FirstmodelDefeat <- glmnet(x = tourneyResults[,c(-2, -3, -4, -5, -6, -7, -8)], y = tourneyResults$lscore)
 
 #perform 5 fold X-validation using cvTools
 dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
                     K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
 
-predicted <- predict(dummyModel, *dataFromVetorBuilder*)
+predicted <- predict(dummyModel, predictionsVectorExtractor(predictionGames[,1]))
 
 ########################################################
 #Evaluation
