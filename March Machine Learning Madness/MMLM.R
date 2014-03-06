@@ -11,10 +11,14 @@ install.packages("foreign")
 install.packages("gbm")
 install.packages("cvTools")
 install.packages("robustbase")
+install.packages("ISLR")
+install.packages("boot")
 require("foreign")
 require("gbm")
 require("cvTools")
 require("robustbase")
+require("ISLR")
+require("boot")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -49,10 +53,12 @@ predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), heade
 seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 seasonResults['wloc'] <- as.factor(seasonResults$wloc)
+is.na(seasonResults$numot) <- 0
 seasonResults['numot'] <- as.factor(seasonResults$numot)
 
 tourneyResults['season'] <- as.factor(tourneyResults$season)
 tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
+is.na(tourneyResults$numot) <- 0
 tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
 
@@ -63,9 +69,11 @@ seasonShuffleIndexes <- as.logical(sample(c(rep(1, floor(nrow(seasonResults)/2))
 tourneyShuffleIndexes <- tourneyShuffleIndexes[1:length(tourneyShuffleIndexes) - 1]
 seasonShuffleIndexes <- seasonShuffleIndexes[1:length(seasonShuffleIndexes) - 1]
 
-#express "y" in terms of probability where "1" means win and "0" defeat
+#encode "y" in terms of probability where "1" means win and "0" defeat
 yTourney <- as.numeric(tourneyShuffleIndexes)
 ySeason <- as.numeric(seasonShuffleIndexes)
+tourneyResults['y'] <- yTourney
+seasonResults['y'] <- ySeason
 
 #Season Results Shuffle
 winTeams <- rep(0, length(seasonShuffleIndexes))
@@ -143,6 +151,7 @@ for(i in 1:nrow(tourneyResults)){
   tournamentHistoric[i, ] <- anonFun(tourneyResults$wteam[i], tourneyResults$lteam[i], historic.env, vectorZeros, SportsReferenceData)
 }
 
+#tourney Seeds
 winSeeds <- rep(0, nrow(tourneyResults))
 for(i in 1:nrow(tourneyResults)){
   winSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == tourneyResults$wteam[i] & tourneySeeds$season == tourneyResults$season[i]]    
@@ -151,13 +160,16 @@ winSeeds <- as.numeric(gsub('[A-Za-z]', '', winSeeds))
 
 loseSeeds <- rep(0, nrow(tourneyResults))
 for(i in 1:nrow(tourneyResults)){
-  loseSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == tourneyResults$wteam[i] & tourneySeeds$season == tourneyResults$season[i]]    
+  loseSeeds[i] <- tourneySeeds$seed[tourneySeeds$team == tourneyResults$lteam[i] & tourneySeeds$season == tourneyResults$season[i]]    
 }
 loseSeeds <- as.numeric(gsub('[A-Za-z]', '', loseSeeds))
 
 tourneyResults <- cbind(tourneyResults, winSeeds, loseSeeds, tournamentHistoric)
-colnames <- c("Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC", "Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
-colnames <- c(names(tourneyResults[1:10]), colnames)
+#colnames <- names(SportsReferenceData); colnames <- colnames[c(-1, -2, -3)]
+colnames <- c("From","To","Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC","From2","To2","Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
+colnames <- c(names(tourneyResults[1:11]), colnames)
+names(tourneyResults) <- colnames
+
 #######################################################
 #Visualizations
 #Regular Season Results Graphs
@@ -207,8 +219,10 @@ importFromStata <- function(fileName){
 # set up function call
 source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
 
-FirstmodelWin <- glmnet(x = tourneyResults[,c(-2, -3, -4, -5, -6, -7, -8)], y = tourneyResults$wscore)
-FirstmodelDefeat <- glmnet(x = tourneyResults[,c(-2, -3, -4, -5, -6, -7, -8)], y = tourneyResults$lscore)
+#tourney model
+
+glm.fit = glm(formula = yTourney ~ , data = tourneyResults)
+cv.glm(Auto,glm.fit)
 
 #perform 5 fold X-validation using cvTools
 dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
