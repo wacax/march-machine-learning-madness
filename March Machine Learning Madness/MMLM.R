@@ -53,12 +53,12 @@ predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), heade
 seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 seasonResults['wloc'] <- as.factor(seasonResults$wloc)
-is.na(seasonResults$numot) <- 0
+seasonResults[is.na(seasonResults$numot)] <- 0
 seasonResults['numot'] <- as.factor(seasonResults$numot)
 
 tourneyResults['season'] <- as.factor(tourneyResults$season)
 tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
-is.na(tourneyResults$numot) <- 0
+tourneyResults[is.na(tourneyResults$numot)] <- 0
 tourneyResults['numot'] <- as.factor(tourneyResults$numot)
 tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
 
@@ -218,15 +218,46 @@ importFromStata <- function(fileName){
 #get fun also works when extracts data from non-environments i.e dataframes
 # set up function call
 source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
+#home made validation
+trainIdxs <- sort(sample(1:nrow(tourneyResults), floor(nrow(tourneyResults)*0.7)))
+testIdxs <- !(1:nrow(tourneyResults) %in%  trainIdxs)
+trainIdxs <- (1:nrow(tourneyResults) %in%  trainIdxs)
+tourneyResultsTest <- tourneyResults[testIdxs, ]
+tourneyResults <- tourneyResults[trainIdxs, ]
 
 #tourney model
+glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
+#cv.glm(tourneyResults, glm.fit) #this is the generic function
 
-glm.fit = glm(formula = yTourney ~ , data = tourneyResults)
-cv.glm(Auto,glm.fit)
+predictionFromModel <- predict(glm.fit, tourneyResultsTest)
+predictionFromModel[predictionFromModel <= 0] <- 0.0000001
+predictionFromModel[predictionFromModel >= 1] <- 0.9999999
 
-#perform 5 fold X-validation using cvTools
-dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
-                    K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
+#Let's write a simple function to use formula (5.2)
+loocv=function(fit){
+  h=lm.influence(fit)$h
+  mean((residuals(fit)/(1-h))^2)
+}
+# Now we try it out
+loocv(glm.fit)
+
+cv.error=rep(0,5)
+degree=1:5
+for(d in degree){
+  glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
+  cv.error[d]=loocv(glm.fit)
+}
+plot(degree,cv.error,type="b")
+
+#perform 10 fold X-validation using cvTools
+cv.error10=rep(0,5)
+for(d in degree){
+  glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
+  cv.error10[d] = cv.glm(tourneyResults, glm.fit, K=10)$delta[1]
+}
+lines(degree,cv.error10,type="b",col="red")
+#dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
+#                    K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
 
 predicted <- predict(dummyModel, predictionsVectorExtractor(predictionGames[,1]))
 
@@ -234,5 +265,7 @@ predicted <- predict(dummyModel, predictionsVectorExtractor(predictionGames[,1])
 #Evaluation
 #Submissions are scored on the log loss
 require("Metrics")
-score <- logLoss(actual, predicted)
+names(predictionFromModel) <- NULL
+predictionFromModel[is.na(predictionFromModel)] <- 0
+score <- logLoss(tourneyResultsTest$y, predictionFromModel)
 print(score)
