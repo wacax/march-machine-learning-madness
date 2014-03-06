@@ -229,6 +229,7 @@ tourneyResults <- tourneyResults[trainIdxs, ]
 glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
 gbm.fit = gbm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults, n.trees = 10000)
 #cv.glm(tourneyResults, glm.fit) #this is the generic function
+print(glm.fit)
 print(gbm.fit)
 predictionFromModel <- predict(glm.fit, tourneyResultsTest)
 predictionFromModel[predictionFromModel <= 0] <- 0.0000001
@@ -268,10 +269,13 @@ predicted <- predict(dummyModel, predictionsVectorExtractor(predictionGames[,1])
 ########################################################
 #Evaluation
 #Submissions are scored on the log loss
+source(paste0(workingDirectory, 'customLogLoss.R'))
 require("Metrics")
 names(predictionFromModel) <- NULL
 predictionFromModel[is.na(predictionFromModel)] <- 0
 score <- logLoss(tourneyResultsTest$y, predictionFromModel)
 print(score)
+score2 <- customLogLoss(tourneyResultsTest$y, predictionFromModel)
+print(score2)
 scoreGBM <- logLoss(tourneyResultsTest$y, predictionFromGBM)
 print(scoreGBM)
