@@ -227,13 +227,17 @@ tourneyResults <- tourneyResults[trainIdxs, ]
 
 #tourney model
 glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
+gbm.fit = gbm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults, n.trees = 10000)
 #cv.glm(tourneyResults, glm.fit) #this is the generic function
-
+print(gbm.fit)
 predictionFromModel <- predict(glm.fit, tourneyResultsTest)
 predictionFromModel[predictionFromModel <= 0] <- 0.0000001
 predictionFromModel[predictionFromModel >= 1] <- 0.9999999
+predictionFromGBM <- predict(gbm.fit, tourneyResultsTest, 10000)
+predictionFromGBM[predictionFromGBM <= 0] <- 0.0000001
+predictionFromGBM[predictionFromGBM >= 1] <- 0.9999999
 
-#Let's write a simple function to use formula (5.2)
+#Let's write a simple function to use formula
 loocv=function(fit){
   h=lm.influence(fit)$h
   mean((residuals(fit)/(1-h))^2)
@@ -269,3 +273,5 @@ names(predictionFromModel) <- NULL
 predictionFromModel[is.na(predictionFromModel)] <- 0
 score <- logLoss(tourneyResultsTest$y, predictionFromModel)
 print(score)
+scoreGBM <- logLoss(tourneyResultsTest$y, predictionFromGBM)
+print(scoreGBM)
