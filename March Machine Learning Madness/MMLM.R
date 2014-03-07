@@ -59,8 +59,10 @@ seasonResults['numot'] <- as.factor(seasonResults$numot)
 tourneyResults['season'] <- as.factor(tourneyResults$season)
 tourneyResults['daynum'] <- as.factor(tourneyResults$daynum)
 tourneyResults[is.na(tourneyResults$numot)] <- 0
-tourneyResults['numot'] <- as.factor(tourneyResults$numot)
-tourneyResults['wloc'] <- as.factor(rep('N', nrow(tourneyResults)))
+numot <- as.factor(tourneyResults$numot)
+wloc <- as.factor(rep('N', nrow(tourneyResults)))
+tourneyResults <- tourneyResults[,-7]
+tourneyResults <- cbind(tourneyResults, wloc, numot)
 
 #More data munging
 #Data shuffling
@@ -138,13 +140,23 @@ anonFun <- function(keyWin, keyLose, environment, vectorZeros, SportsReferenceDa
     historicVector <- c(vectorZeros, vectorZeros)
   }
 }
-
+#season historic
 vectorZeros <- rep(0, 15)
 seasonHistoric <- matrix(rep(0, nrow(seasonResults) * 30), nrow=nrow(seasonResults), ncol=30) 
 for(i in 1:nrow(seasonResults)){
   seasonHistoric[i, ] <- anonFun(seasonResults$wteam[i], seasonResults$lteam[i], historic.env, vectorZeros, SportsReferenceData)
 }
+#season seeds (dummy)
+winSeeds <- rep(17, nrow(seasonResults))
+loseSeeds <- rep(17, nrow(seasonResults))
 
+seasonResults <- cbind(seasonResults, winSeeds, loseSeeds, seasonHistoric)
+#colnames <- names(SportsReferenceData); colnames <- colnames[c(-1, -2, -3)]
+colnames <- c("From","To","Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC","From2","To2","Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
+colnames <- c(names(seasonResults[1:11]), colnames)
+names(seasonResults) <- colnames
+
+#tourney historic
 vectorZeros <- rep(0, 15)
 tournamentHistoric <- matrix(rep(0, nrow(tourneyResults) * 30), nrow=nrow(tourneyResults), ncol=30) 
 for(i in 1:nrow(tourneyResults)){
@@ -215,6 +227,7 @@ importFromStata <- function(fileName){
 
 ########################################################
 #Training
+tourneyResults <- rbind(seasonResults, tourneyResults)
 #get fun also works when extracts data from non-environments i.e dataframes
 # set up function call
 source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
@@ -226,8 +239,8 @@ tourneyResultsTest <- tourneyResults[testIdxs, ]
 tourneyResults <- tourneyResults[trainIdxs, ]
 
 #tourney model
-glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
-gbm.fit = gbm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults, n.trees = 10000)
+glm.fit = glm(formula = y ~ wloc + season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
+gbm.fit = gbm(formula = y ~ wloc + season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults, n.trees = 10000)
 #cv.glm(tourneyResults, glm.fit) #this is the generic function
 print(glm.fit)
 print(gbm.fit)
