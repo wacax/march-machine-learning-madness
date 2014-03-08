@@ -13,12 +13,14 @@ install.packages("cvTools")
 install.packages("robustbase")
 install.packages("ISLR")
 install.packages("boot")
+install.packages("PlayerRatings")
 require("foreign")
 require("gbm")
 require("cvTools")
 require("robustbase")
 require("ISLR")
 require("boot")
+require("PlayerRatings")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -47,6 +49,11 @@ SportsReferenceDataGlossary <- read.csv(paste0(dataDirectory, 'SportsReferenceDa
 thePredictionTracker <- 'http://www.thepredictiontracker.com/ncaabbtoday.csv'
 download.file(thePredictionTracker, paste0(dataDirectory, 'predictionTracker.csv'), method = 'auto')
 predictTracker <- read.csv(paste0(dataDirectory, 'predictionTracker.csv'), header = TRUE, stringsAsFactors = FALSE)
+
+sagarinRanking <- read.csv(paste0(dataDirectory, 'sagp_weekly_ratings.csv'), header = TRUE, stringsAsFactors = FALSE)
+core33 <- read.csv(paste0(dataDirectory, 'ordinal_ranks_core_33.csv'), header = TRUE, stringsAsFactors = FALSE)
+nonCore <- read.csv(paste0(dataDirectory, 'ordinal_ranks_non_core.csv'), header = TRUE, stringsAsFactors = FALSE)
+pointspreads <- read.csv(paste0(dataDirectory, 'pointspreads.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 ######################################################
 #Data munching
@@ -150,11 +157,15 @@ for(i in 1:nrow(seasonResults)){
 winSeeds <- rep(17, nrow(seasonResults))
 loseSeeds <- rep(17, nrow(seasonResults))
 
+winSeeds <- as.factor(winSeeds)
+loseSeeds <- as.factor(loseSeeds)
 seasonResults <- cbind(seasonResults, winSeeds, loseSeeds, seasonHistoric)
 #colnames <- names(SportsReferenceData); colnames <- colnames[c(-1, -2, -3)]
 colnames <- c("From","To","Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC","From2","To2","Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
 colnames <- c(names(seasonResults[1:11]), colnames)
 names(seasonResults) <- colnames
+tourney <- rep(0, nrow(seasonResults))
+seasonResults <- cbind(seasonResults, tourney)
 
 #tourney historic
 vectorZeros <- rep(0, 15)
@@ -176,11 +187,15 @@ for(i in 1:nrow(tourneyResults)){
 }
 loseSeeds <- as.numeric(gsub('[A-Za-z]', '', loseSeeds))
 
+winSeeds <- as.factor(winSeeds)
+loseSeeds <- as.factor(loseSeeds)
 tourneyResults <- cbind(tourneyResults, winSeeds, loseSeeds, tournamentHistoric)
 #colnames <- names(SportsReferenceData); colnames <- colnames[c(-1, -2, -3)]
 colnames <- c("From","To","Yrs","G","W","L","W.L.","SRS","SOS","AP","CREG","CTRN","NCAA","FF","NC","From2","To2","Yrs2","G2","W2","L2","W.L.2","SRS2","SOS2","AP2","CREG2","CTRN2","NCAA2","FF2","NC2")
 colnames <- c(names(tourneyResults[1:11]), colnames)
 names(tourneyResults) <- colnames
+tourney <- rep(1, nrow(tourneyResults))
+tourneyResults <- cbind(tourneyResults, tourney)
 
 #######################################################
 #Visualizations
@@ -227,10 +242,9 @@ importFromStata <- function(fileName){
 
 ########################################################
 #Training
-tourneyResults <- rbind(seasonResults, tourneyResults)
+#tourneyResults <- rbind(seasonResults, tourneyResults) this line binds both season and tournament
 #get fun also works when extracts data from non-environments i.e dataframes
 # set up function call
-source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
 #home made validation
 trainIdxs <- sort(sample(1:nrow(tourneyResults), floor(nrow(tourneyResults)*0.7)))
 testIdxs <- !(1:nrow(tourneyResults) %in%  trainIdxs)
@@ -239,8 +253,8 @@ tourneyResultsTest <- tourneyResults[testIdxs, ]
 tourneyResults <- tourneyResults[trainIdxs, ]
 
 #tourney model
-glm.fit = glm(formula = y ~ wloc + season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults)
-gbm.fit = gbm(formula = y ~ wloc + season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 , data = tourneyResults, n.trees = 10000)
+glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney, data = tourneyResults)
+gbm.fit = gbm(formula = y ~  season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney , data = tourneyResults, n.trees = 10000)
 #cv.glm(tourneyResults, glm.fit) #this is the generic function
 print(glm.fit)
 print(gbm.fit)
@@ -277,8 +291,6 @@ lines(degree,cv.error10,type="b",col="red")
 #dummyModel <- cvFit(dummyModel, data = seasonResults, y = seasonResults$wscore,
 #                    K = 5, R = 10, costArgs = list(trim = 0.1), seed = 1234)
 
-predicted <- predict(dummyModel, predictionsVectorExtractor(predictionGames[,1]))
-
 ########################################################
 #Evaluation
 #Submissions are scored on the log loss
@@ -294,3 +306,17 @@ scoreGBM <- logLoss(tourneyResultsTest$y, predictionFromGBM)
 print(scoreGBM)
 scoreGBM2 <- customLogLoss(tourneyResultsTest$y, predictionFromGBM)
 print(scoreGBM2)
+
+#########################################################
+#Test Matrix
+source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
+testMatrix <- predictionsVectorExtractor(predictionGames[,1], seasonResults, tourneyResults, tourneySeeds, historic.env, SportsReferenceData)
+
+prediction1 <- predict(glm.fit, testMatrix)
+prediction1[prediction1 <= 0] <- 0.0000001
+prediction1[prediction1 >= 1] <- 0.9999999
+prediction1[is.na(prediction1)] <- 0.5
+
+#create a csv
+predictionGames['pred'] = prediction1
+write.csv(predictionGames, file = "predictionI.csv", row.names = FALSE)
