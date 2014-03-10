@@ -12,11 +12,22 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, date = NULL){
   }
   
   anonFun <- function(teamInt, seasonInt, dateInt){
+    #sagarin
     teamAndSeasonIdx <- sagarinRanking$season == seasonInt & sagarinRanking$team == teamInt
     ordinalRank <- sagarinRanking$orank[teamAndSeasonIdx]
     sagarinRating <- sagarinRanking$rating[teamAndSeasonIdx]
     rankIdx <- which.min(abs(sagarinRanking$rating_day_num[teamAndSeasonIdx] - dateInt))
     sagarinRankings <- cbind(ordinalRank[rankIdx], sagarinRating[rankIdx])
+    
+    #core33
+    teamAndSeasonIdx <- core33$season == seasonInt & core33$team == teamInt
+    ordinalRank <- core33[teamAndSeasonIdx, ]
+    rankIdxs <- abs(core33$rating_day_num[teamAndSeasonIdx] - dateInt) %in% min(abs(core33$rating_day_num[teamAndSeasonIdx] - dateInt)) 
+    ordinalRank <- ordinalRank[rankIdxs, ]
+    namesOR <- ordinalRank$sys_name
+    ordinalRank <- ordinalRank$orank
+    names(ordinalRank) <- namesOR
+    
     return(sagarinRanking)
   }
   
