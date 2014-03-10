@@ -1,4 +1,4 @@
-RankingsExtractor <- function(teams1, teams2, seasonVector, date = NULL){
+RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   
   #load dataFrames
   tourneyResults <- read.csv(paste0(dataDirectory, 'tourney_results.csv'), header = TRUE, stringsAsFactors = FALSE)
@@ -7,67 +7,65 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, date = NULL){
   nonCore <- read.csv(paste0(dataDirectory, 'ordinal_ranks_non_core.csv'), header = TRUE, stringsAsFactors = FALSE)
   seasons <- read.csv(paste0(dataDirectory, 'seasons.csv'), header = TRUE, stringsAsFactors = FALSE)
   
-  if(date == NULL){
-    date <- rep(min(tourneyResults$daynum), length(seasonVector))
+  if(length(dateVec) == 0){
+    dateVec <- rep(min(tourneyResults$daynum), length(seasonVector))
   }
   
-  anonFun <- function(teamInt, seasonInt, dateInt){
+  #ranking extractor
+  rankingExtract <- function(teamInt, seasonInt, dateInt){
     #sagarin
     teamAndSeasonIdx <- sagarinRanking$season == seasonInt & sagarinRanking$team == teamInt
-    ordinalRank <- sagarinRanking$orank[teamAndSeasonIdx]
-    sagarinRating <- sagarinRanking$rating[teamAndSeasonIdx]
-    rankIdx <- which.min(abs(sagarinRanking$rating_day_num[teamAndSeasonIdx] - dateInt))
-    sagarinRankings <- cbind(ordinalRank[rankIdx], sagarinRating[rankIdx])
+    if (sum(teamAndSeasonIdx) == 0){
+      sagarinRankings <- c(NA, NA)  
+      names(sagarinRankings) <- c('ordinalRankSagarin', 'sagarinRating')
+    }else{
+      ordinalRankSagarin <- sagarinRanking$orank[teamAndSeasonIdx]
+      sagarinRating <- sagarinRanking$rating[teamAndSeasonIdx]
+      rankIdx <- which.min(abs(sagarinRanking$rating_day_num[teamAndSeasonIdx] - dateInt))
+      sagarinRankings <- cbind(ordinalRankSagarin[rankIdx], sagarinRating[rankIdx])
+      names(sagarinRankings) <- c('ordinalRankSagarin', 'sagarinRating')
+    }
     
     #core33
-    teamAndSeasonIdx <- core33$season == seasonInt & core33$team == teamInt
-    ordinalRank <- core33[teamAndSeasonIdx, ]
-    rankIdxs <- abs(core33$rating_day_num[teamAndSeasonIdx] - dateInt) %in% min(abs(core33$rating_day_num[teamAndSeasonIdx] - dateInt)) 
-    ordinalRank <- ordinalRank[rankIdxs, ]
-    namesOR <- ordinalRank$sys_name
-    ordinalRank <- ordinalRank$orank
-    names(ordinalRank) <- namesOR
+    namesOR <- unique(core33$sys_name)
+    lenOR <- length(unique(core33$sys_name))
+    seasonIdx <- core33$season == seasonInt
+    if (sum(seasonIdx) == 0){
+      ordinalRank <- rep(NA, length(namesOR))
+      names(ordinalRank) <- namesOR
+    }else{
+      coreCut <- core33[seasonIdx, ]
+      teamIdx <- coreCut$team == teamInt
+      ordinalRank <- coreCut[teamIdx, ]
+      rankIdxs <- abs(ordinalRank$rating_day_num - dateInt) %in% min(abs(ordinalRank$rating_day_num - dateInt)) 
+      ordinalRank <- ordinalRank[rankIdxs, ]
+      namesOR <- ordinalRank$sys_name
+      ordinalRank <- ordinalRank$orank
+      if(length(ordinalRank) < lenOR){
+        ordinalRank <- rep(NA, lenOR)    
+      }else{
+        names(ordinalRank) <- namesOR
+      }      
+    }
     
-    return(sagarinRanking)
+    return(c(sagarinRankings, ordinalRank))
   }
   
-  
-  
-  
-  
-  
-  dayZeroSeasons <- sapply(seasons$dayzero, anonFun <- function(string){
-    return(as.Date(string, format = '%m/%d/%Y'))
-  })
-  
-  dummy <- as.factor(c(as.character(seasonVector),  c("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R", "S")))
-  seasonVector <- as.numeric(dummy[1: length(seasonVector)])
-  
-  if (date == NULL){
-    newDate <- sapply(seasonVector, anonFun <- function(seasonInt){
-      return(dayZeroSeasons[seasonInt] + min(tourneyResults$daynum))
-    })
-  }else{    
-    anonFun <- function(seasonInt, DateGame, dayZeroSeasons){
-      return(dayZeroSeasons[seasonInt] + DateGame)
-    }    
-    newDate <- rep(0, length(date))
-    for(i in 1:length(date)){
-      newDate[i] <- anonFun(seasonVector[i], date[i], dayZeroSeasons)
-    }    
+  coreRankings <- matrix(rep(0, length(seasonVector) * (length(unique(core33$sys_name)) + 2)), 
+                         nrow = length(seasonVector), ncol = (length(unique(core33$sys_name)) + 2))
+  for(i in 1:length(seasonVector)){
+    coreRankings[i, ] <- rankingExtract(teams1[i], seasonVector[i], dateVec[i])    
   }
   
-  anonFun <- function(seasonInt, DateGame, dayZeroSeasons){
-    return(dayZeroSeasons[seasonInt] + DateGame)
-  }
-  dummy <- as.factor(c(as.character(sagarinRanking$season),  c("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R", "S")))
-  sagarinSeason <- as.numeric(dummy[1: length(sagarinRanking$season)])  
-  SagarinDate <- rep(0, length(sagarinSeason))
-  for(i in 1:length(sagarinSeason)){
-    SagarinDate[i] <- anonFun(sagarinSeason[i], sagarinRanking$rating_day_num[i], dayZeroSeasons)    
+  names(coreRankings) <- unique(core33$sys_name)
+  
+  coreRankings2 <- matrix(rep(0, length(seasonVector) * (length(unique(core33$sys_name)) + 2)), 
+                         nrow = length(seasonVector), ncol = (length(unique(core33$sys_name)) + 2))
+  for(i in 1:length(seasonVector)){
+    coreRankings2[i, ] <- rankingExtract(teams2[i], seasonVector[i], dateVec[i])    
   }
   
-  
-  
-  
+  names(coreRankings) <- c("AP2","DUN2","MOR2","POM2","RPI2","SAG2","SE2","USA2","WLK2","BOB2","RTH2","WOL2","COL2","DOL2","CNG2","DES2","DC2","WIL2","DOK2","PIG2","MB2","RTR2","CPR2","REW2","STH2","SPW2","PGH2","CPA2","RTB2","BPI2","NOL2","DCI","LMC2")
+    
+  return(as.data.frame(coreRankings))
 }
