@@ -55,6 +55,12 @@ core33 <- read.csv(paste0(dataDirectory, 'ordinal_ranks_core_33.csv'), header = 
 nonCore <- read.csv(paste0(dataDirectory, 'ordinal_ranks_non_core.csv'), header = TRUE, stringsAsFactors = FALSE)
 pointspreads <- read.csv(paste0(dataDirectory, 'pointspreads.csv'), header = TRUE, stringsAsFactors = FALSE)
 
+#########################################################
+#MasterData
+
+MasterData <- read.csv(paste0(dataDirectory, 'MasterData.csv'), header = TRUE, stringsAsFactors = FALSE)
+
+
 ######################################################
 #Data munching
 seasonResults['season'] <- as.factor(seasonResults$season)
@@ -253,8 +259,11 @@ tourneyResultsTest <- tourneyResults[testIdxs, ]
 tourneyResults <- tourneyResults[trainIdxs, ]
 
 #tourney model
-glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney, data = tourneyResults)
-gbm.fit = gbm(formula = y ~  season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney , data = tourneyResults, n.trees = 10000)
+#glm.fit = glm(formula = y ~ season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney, data = tourneyResults)
+#gbm.fit = gbm(formula = y ~  season + winSeeds + loseSeeds + G + G2 + W + W2 + L + L2 + W.L. + W.L.2 + SRS + SRS2 + SOS + SOS2 + AP + AP2 + CREG + CREG2  + CTRN + CTRN2 + NCAA + NCAA2 + FF + FF2 + NC + NC2 + tourney , data = tourneyResults, n.trees = 10000)
+glm.fit = glm(formula = Win ~ season + Top.School_Team1 + Top.School_Team2 + Team.1.ID + Team.2.ID + Team.1.OSRS + Team.1.DSRS + Team.1.SRS + Team.2.OSRS + Team.2.DSRS + Team.2.SRS, data = MasterData)
+gbm.fit = gbm(formula = Win ~ season + Top.School_Team1 + Top.School_Team2 + Team.1.ID + Team.2.ID + Team.1.OSRS + Team.1.DSRS + Team.1.SRS + Team.2.OSRS + Team.2.DSRS + Team.2.SRS, data = MasterData, n.trees = 10000)
+
 #cv.glm(tourneyResults, glm.fit) #this is the generic function
 print(glm.fit)
 print(gbm.fit)
