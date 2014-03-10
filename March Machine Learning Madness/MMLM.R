@@ -329,3 +329,7 @@ prediction1[is.na(prediction1)] <- 0.5
 #create a csv
 predictionGames['pred'] = prediction1
 write.csv(predictionGames, file = "predictionI.csv", row.names = FALSE)
+
+#create a csv with seeds and core33 rankings
+MasterData <- cbind(MasterData, RankingsExtractor(MasterData$wteam, MasterData$lteam, MasterData$season, MasterData$daynum))
+write.csv(MasterData, file = "MasterData2.csv", row.names = FALSE)
