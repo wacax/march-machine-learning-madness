@@ -91,5 +91,7 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   seedsTeam1 <- extractSeeds(teams1, seasonVector)
   seedsTeam2 <- extractSeeds(teams2, seasonVector)
   
-  return(cbind(seedsTeam1, seedsTeam2, coreRankings, coreRankings2))
+  seedBenchmark <- 0.50 + 0.03 * (seedsTeam1 - seedsTeam2)
+  
+  return(cbind(seedsTeam1, seedsTeam2, seedBenchmark, coreRankings, coreRankings2))
 }
