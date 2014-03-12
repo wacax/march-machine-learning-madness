@@ -77,7 +77,15 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   }
   coreRankings2 <- as.data.frame(coreRankings2)
   names(coreRankings) <- c("sagarinRankings","ordinalRank","AP2","DUN2","MOR2","POM2","RPI2","SAG2","SE2","USA2","WLK2","BOB2","RTH2","WOL2","COL2","DOL2","CNG2","DES2","DC2","WIL2","DOK2","PIG2","MB2","RTR2","CPR2","REW2","STH2","SPW2","PGH2","CPA2","RTB2","BPI2","NOL2","DCI","LMC2")
+######################################
+#Under construction
+  #non-Core  
+  namesOR <- unique(nonCore$sys_name)
+  originalNamesOR <- sort(unique(nonCore$sys_name))
+  lenOR <- length(unique(nonCore$sys_name))
+  seasonIdx <- nonCore$season == seasonInt
   
+######################################
   #Seeds extractor
   extractSeeds <- function(teamVector, seasonVector){
     Seeds <- rep(0, nrow(tourneyResults))
@@ -92,6 +100,8 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   seedsTeam2 <- extractSeeds(teams2, seasonVector)
   
   seedBenchmark <- 0.50 + 0.03 * (seedsTeam1 - seedsTeam2)
+  
+  
   
   return(cbind(seedsTeam1, seedsTeam2, seedBenchmark, coreRankings, coreRankings2))
 }
