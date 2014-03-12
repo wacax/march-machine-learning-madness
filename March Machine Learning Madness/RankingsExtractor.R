@@ -33,7 +33,7 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
     lenOR <- length(unique(core33$sys_name))
     seasonIdx <- core33$season == seasonInt
     if (sum(seasonIdx) == 0){
-      ordinalRank <- rep(NA, length(namesOR))
+      ordinalRank <- rep(NA, lenOR)
       names(ordinalRank) <- namesOR
     }else{
       coreCut <- core33[seasonIdx, ]
@@ -76,7 +76,9 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
     coreRankings2[i, ] <- rankingExtract(teams2[i], seasonVector[i], dateVec[i])    
   }
   coreRankings2 <- as.data.frame(coreRankings2)
-  names(coreRankings) <- c("sagarinRankings","ordinalRank","AP2","DUN2","MOR2","POM2","RPI2","SAG2","SE2","USA2","WLK2","BOB2","RTH2","WOL2","COL2","DOL2","CNG2","DES2","DC2","WIL2","DOK2","PIG2","MB2","RTR2","CPR2","REW2","STH2","SPW2","PGH2","CPA2","RTB2","BPI2","NOL2","DCI","LMC2")
+  names(coreRankings2) <- c("sagarinRankings2","ordinalRank2", sapply(sort(unique(core33$sys_name)), anonFun <-function(string){
+    return(paste0(string, 2))
+  }))
   
   #non-Core  
   nonCorerankingExtract <- function(teamInt, seasonInt, dateInt){
@@ -86,7 +88,7 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
     seasonIdx <- nonCore$season == seasonInt
     
     if (sum(seasonIdx) == 0){
-      ordinalRank <- rep(NA, length(namesOR))
+      ordinalRank <- rep(NA, lenOR)
       names(ordinalRank) <- namesOR
     }else{
       nonCoreCut <- nonCore[seasonIdx, ]
@@ -126,7 +128,7 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   nonCoreRankings2 <- matrix(rep(0, length(seasonVector) * (length(unique(nonCore$sys_name)))), 
                             nrow = length(seasonVector), ncol = (length(unique(nonCore$sys_name))))
   for(i in 1:length(seasonVector)){
-    nonCoreRankings2[i, ] <- nonCorerankingExtract(teams1[i], seasonVector[i], dateVec[i])    
+    nonCoreRankings2[i, ] <- nonCorerankingExtract(teams2[i], seasonVector[i], dateVec[i])    
   }
   nonCoreRankings2 <- as.data.frame(nonCoreRankings2)
   names(nonCoreRankings2) <- sapply(sort(unique(nonCore$sys_name)), anonFun <-function(string){
@@ -146,9 +148,9 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   seedsTeam1 <- extractSeeds(teams1, seasonVector)
   seedsTeam2 <- extractSeeds(teams2, seasonVector)
   
-  seedBenchmark <- 0.50 + 0.03 * (seedsTeam1 - seedsTeam2)
+  seedBenchmark <- 1 - (0.50 + 0.03 * (seedsTeam1 - seedsTeam2))
   
   
   
-  return(cbind(seedsTeam1, seedsTeam2, seedBenchmark, coreRankings, coreRankings2, nonCoreRankings1, nonCoreRankings2))
+  return(cbind(seedsTeam1, seedsTeam2, seedBenchmark, coreRankings, coreRankings2, nonCoreRankings, nonCoreRankings2))
 }
