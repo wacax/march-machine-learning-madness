@@ -14,6 +14,7 @@ install.packages("robustbase")
 install.packages("ISLR")
 install.packages("boot")
 install.packages("PlayerRatings")
+install.packages("yaml")
 require("foreign")
 require("gbm")
 require("cvTools")
@@ -21,6 +22,7 @@ require("robustbase")
 require("ISLR")
 require("boot")
 require("PlayerRatings")
+require("yaml")
 
 #Set Working Directory
 #workingDirectory <- 'D:/Wacax/Repos/March Madness'
@@ -40,6 +42,7 @@ tourneySeeds <- read.csv(paste0(dataDirectory, 'tourney_seeds.csv'), header = TR
 SportsReferenceData <- read.csv(paste0(dataDirectory, 'SportsReferenceData.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 predictionGames <- read.csv(paste0(dataDirectory, 'sample_submission.csv'), header = TRUE, stringsAsFactors = FALSE)
+solutionsPredictionGames <- read.csv(paste0(dataDirectory, 'solution.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 #Glosary
 SportsReferenceDataGlossary <- read.csv(paste0(dataDirectory, 'SportsReferenceDataGlossary.csv'), header = TRUE, stringsAsFactors = FALSE)
@@ -54,15 +57,49 @@ sagarinRanking <- read.csv(paste0(dataDirectory, 'sagp_weekly_ratings.csv'), hea
 core33 <- read.csv(paste0(dataDirectory, 'ordinal_ranks_core_33.csv'), header = TRUE, stringsAsFactors = FALSE)
 nonCore <- read.csv(paste0(dataDirectory, 'ordinal_ranks_non_core.csv'), header = TRUE, stringsAsFactors = FALSE)
 pointspreads <- read.csv(paste0(dataDirectory, 'pointspreads.csv'), header = TRUE, stringsAsFactors = FALSE)
+chessMetrics <- read.csv(paste0(dataDirectory, 'chessmetrics.csv'), header = TRUE, stringsAsFactors = FALSE)
+NCAAAthleteList <- yaml.load_file(paste0(dataDirectory, 'infobox_infobox_ncaa_athlete.yaml'))
+NCAAAthleteIcssList <- yaml.load_file(paste0(dataDirectory, 'infochimps_ncaa-athlete.icss.yaml'))
 
+core33Last <- read.csv(paste0(dataDirectory, 'ordinal_ranks_season_S_thru_19-MAR.csv'), header = TRUE, stringsAsFactors = FALSE)
+core33 <- rbind(core33, core33Last)
 #########################################################
 #MasterData
 
 MasterData <- read.csv(paste0(dataDirectory, 'MasterData.csv'), header = TRUE, stringsAsFactors = FALSE)
-
+MasterData2 <- read.csv(paste0(dataDirectory, 'MasterData2.csv'), header = TRUE, stringsAsFactors = FALSE)
 
 ######################################################
 #Data munching
+#top players extractor
+namesAthletes <- names(NCAAAthleteList)
+indexes <- logical(length = length(NCAAAthlete))
+for(i in 1:length(NCAAAthlete)){
+  IDX <- which(names(NCAAAthlete[[i]]) == 'sport')
+  if(sum(IDX) == 0){
+    indexes[i] <- FALSE
+  }else{
+    object <- NCAAAthlete[[i]]
+    indexes[i] <- object[IDX] == '[[Basketball]]'
+  }
+}
+
+basketPlayers <- NCAAAthlete[indexes]
+values <- matrix(nrow = length(basketPlayers), ncol = 3)
+playerNames <- character(length = length(basketPlayers))
+for(i in 1:length(basketPlayers)){
+  collegeIDX <- which(names(basketPlayers[[i]]) == 'college')
+  startSeasonIDX <- which(names(basketPlayers[[i]]) == 'careerStart')
+  object <- basketPlayers[[i]]
+  college <- object[collegeIDX] 
+  college <- gsub('_', ' ', college)
+  year <- object[startSeasonIDX]  
+  
+}
+
+solutionsGames <- solutionsPredictionGames[solutionsPredictionGames$pred != -1, ]
+string <- c(predictionGames[,1], solutionsGames[,1])
+
 seasonResults['season'] <- as.factor(seasonResults$season)
 seasonResults['daynum'] <- as.factor(seasonResults$daynum)
 seasonResults['wloc'] <- as.factor(seasonResults$wloc)
@@ -319,16 +356,21 @@ print(scoreGBM2)
 #########################################################
 #Test Matrix
 source(paste0(workingDirectory, 'predictionsVectorExtractor.R'))
-testMatrix <- predictionsVectorExtractor(predictionGames[,1], seasonResults, tourneyResults, tourneySeeds, historic.env, SportsReferenceData)
+#testMatrix <- predictionsVectorExtractor(predictionGames[,1], seasonResults, tourneyResults, tourneySeeds, historic.env, SportsReferenceData)
+source(paste0(workingDirectory, 'testFeaturesExtractor.R'))
+testMatrix <- testFeaturesExtractor(predictionGames[,1])
 
 prediction1 <- predict(glm.fit, testMatrix)
 prediction1[prediction1 <= 0] <- 0.0000001
 prediction1[prediction1 >= 1] <- 0.9999999
 prediction1[is.na(prediction1)] <- 0.5
 
+#create a test matrix
+test <- RankingsExtractor(home, visitor, seasonVector)
+  
 #create a csv
-predictionGames['pred'] = prediction1
-write.csv(predictionGames, file = "predictionI.csv", row.names = FALSE)
+predictionGames['pred'] = prediction2
+write.csv(predictionGames, file = "predictionII.csv", row.names = FALSE)
 
 #create a csv with seeds, core33 rankings and nonCore rankings
 source(paste0(workingDirectory, 'RankingsExtractor.R'))

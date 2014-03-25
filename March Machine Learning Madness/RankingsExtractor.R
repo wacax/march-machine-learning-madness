@@ -149,8 +149,8 @@ RankingsExtractor <- function(teams1, teams2, seasonVector, dateVec = NULL){
   seedsTeam2 <- extractSeeds(teams2, seasonVector)
   
   seedBenchmark <- 1 - (0.50 + 0.03 * (seedsTeam1 - seedsTeam2))
-  
-  
-  
+  1/(1+POWER(10,-RatingDiff/15))
+  multiBenchmark <- 1 - (0.50 + 0.03 * (coreRankings - coreRankings2))
+    
   return(cbind(seedsTeam1, seedsTeam2, seedBenchmark, coreRankings, coreRankings2, nonCoreRankings, nonCoreRankings2))
 }
